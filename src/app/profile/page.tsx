@@ -464,7 +464,7 @@ export default function Profile() {
   : null;
 const predictionValue = predictionPercent != null ? predictionPercent : '—';
 const predictionStatus = predictionPercent != null
-  ? (predictionPercent > 30 ? 'High' : predictionPercent > 15 ? 'Moderate' : 'Normal')
+  ? (predictionPercent >= 60 ? 'High' : predictionPercent >= 30 ? 'Moderate' : 'Low')
   : 'Pending';
   const smokingProgress = data?.cigarettesPerDay != null
     ? Math.max(0, 100 - data.cigarettesPerDay * 5)
