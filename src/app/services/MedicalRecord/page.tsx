@@ -63,8 +63,8 @@ export default function MedicalRecord() {
       const data = resultRes.data?.data ?? resultRes.data;
       const latest = Array.isArray(data) ? data[data.length - 1] : data;
 
-      const rawScore = latest?.cvd_risk_score ?? 0;
-      const numScore = Math.round(Number(rawScore) * 100);
+     const rawScore = latest?.cvd_risk_score ?? 0;
+const numScore = Math.min(100, Math.max(0, Math.round(Number(rawScore) * 100)));
 
       // Prefer pulse pressure returned from the backend; fall back to local calculation
       const pulsePressure =
