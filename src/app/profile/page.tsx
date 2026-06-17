@@ -5,6 +5,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
+import jsPDF from 'jspdf';
 import {
   Heart, Droplets, Activity, AlertCircle, User,
   Bell, Shield, Clock, TrendingUp, Zap,
@@ -286,7 +287,9 @@ const tabs = [
 ];
 
 /* ────────────────────────── Page Header ────────────────────────── */
-const PageHeader = ({ userName, userEmail }: { userName: string; userEmail: string }) => (
+const PageHeader = ({
+  userName, userEmail, onExport,
+}: { userName: string; userEmail: string; onExport: () => void }) => (
   <motion.header
     initial={{ opacity: 0 }}
     animate={{ opacity: 1 }}
@@ -371,7 +374,10 @@ const PageHeader = ({ userName, userEmail }: { userName: string; userEmail: stri
           <button className="p-3 bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 rounded-2xl transition-all duration-300 group">
             <Share2 size={18} className="text-slate-400 group-hover:text-white transition-colors" />
           </button>
-          <button className="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-violet-500 text-white font-bold text-sm px-6 py-3 rounded-2xl hover:from-indigo-600 hover:to-violet-600 transition-all shadow-lg shadow-indigo-500/25 active:scale-[0.97]">
+          <button
+            onClick={onExport}
+            className="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-violet-500 text-white font-bold text-sm px-6 py-3 rounded-2xl hover:from-indigo-600 hover:to-violet-600 transition-all shadow-lg shadow-indigo-500/25 active:scale-[0.97]"
+          >
             <Download size={16} /> Export Report
           </button>
         </motion.div>
@@ -478,6 +484,95 @@ const predictionStatus = predictionPercent != null
     ? (pulsePressure < 25 ? 'Low' : pulsePressure <= 60 ? 'Normal' : 'High')
     : 'Pending';
 
+  /* ── Export Report as PDF ───────────────────────────────── */
+  const handleExportReport = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let y = 22;
+
+    // Title
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(30, 41, 59);
+    doc.text('Patient Health Report', pageWidth / 2, y, { align: 'center' });
+    y += 8;
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.text(`Generated on ${new Date().toLocaleDateString()}`, pageWidth / 2, y, { align: 'center' });
+    y += 12;
+
+    doc.setDrawColor(226, 232, 240);
+    doc.line(15, y, pageWidth - 15, y);
+    y += 10;
+
+    // Patient info
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text('Patient Information', 15, y);
+    y += 8;
+
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(51, 65, 85);
+    doc.text(`Name: ${user?.name || '—'}`, 15, y);
+    y += 7;
+    doc.text(`Email: ${user?.email || '—'}`, 15, y);
+    y += 12;
+
+    // Health metrics
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text('Health Metrics', 15, y);
+    y += 9;
+
+    const rows: [string, string][] = [
+      ['Ejection Fraction', `${efValue}${data?.ef_percentage != null ? '%' : ''}`],
+      ['CVD Risk Score', `${cvdPercent}%`],
+      ['Risk Level', riskLabel],
+      ['Global Prediction', `${predictionValue}${predictionPercent != null ? '%' : ''}`],
+      ['Pulse Pressure', `${pulsePressure}${pulsePressure !== '—' ? ' mmHg' : ''}`],
+      ['Systolic BP', data?.systolicBP != null ? `${data.systolicBP} mmHg` : '—'],
+      ['Diastolic BP', data?.diastolicBP != null ? `${data.diastolicBP} mmHg` : '—'],
+      ['Cigarettes / Day', data?.cigarettesPerDay != null ? `${data.cigarettesPerDay}` : '—'],
+    ];
+
+    doc.setFontSize(11);
+    rows.forEach(([label, value], idx) => {
+      if (idx % 2 === 0) {
+        doc.setFillColor(248, 249, 251);
+        doc.rect(13, y - 5.5, pageWidth - 26, 9, 'F');
+      }
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100, 116, 139);
+      doc.text(label, 17, y);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(15, 23, 42);
+      doc.text(String(value), 100, y);
+      y += 9;
+    });
+
+    y += 6;
+    doc.setDrawColor(226, 232, 240);
+    doc.line(15, y, pageWidth - 15, y);
+
+    // Footer disclaimer
+    doc.setFontSize(8);
+    doc.setTextColor(148, 163, 184);
+    doc.text(
+      'This report is auto-generated and should not replace professional medical advice.',
+      pageWidth / 2,
+      285,
+      { align: 'center' }
+    );
+
+    const safeName = (user?.name || 'patient').trim().replace(/\s+/g, '_');
+    doc.save(`${safeName}_health_report.pdf`);
+  };
+
   return (
     <div className="min-h-screen bg-[#f8f9fb] flex flex-col font-sans selection:bg-indigo-100 selection:text-indigo-900">
       <Navbar />
@@ -490,7 +585,11 @@ const predictionStatus = predictionPercent != null
       </div>
 
       <main className="flex-1 px-4 sm:px-6 md:px-12 py-8 max-w-[1400px] mx-auto w-full">
-        <PageHeader userName={user?.name || ''} userEmail={user?.email || ''} />
+        <PageHeader
+          userName={user?.name || ''}
+          userEmail={user?.email || ''}
+          onExport={handleExportReport}
+        />
 
         {/* Error banner */}
         {error && (

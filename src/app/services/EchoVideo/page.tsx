@@ -17,6 +17,7 @@ import {
   Heart,
   Wifi,
   WifiOff,
+  X,
 } from 'lucide-react';
 import bgImg from '@/components/assets/images/ChatGPT Image Feb 21, 2026, 09_46_37 PM.png';
 
@@ -57,6 +58,7 @@ export default function EchoVideo() {
   const [progress, setProgress] = useState(0);
   const [retryCount, setRetryCount] = useState(0);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [showDemo, setShowDemo] = useState(false);
 
   // ── Fake progress bar ──────────────────────────────────────
   const startFakeProgress = useCallback(() => {
@@ -250,7 +252,10 @@ export default function EchoVideo() {
             </div>
 
             <div className="mt-8 flex items-center gap-6">
-              <button className="text-white/60 font-black text-xs uppercase tracking-widest flex items-center gap-2 hover:text-white transition-colors group">
+              <button
+                onClick={() => setShowDemo(true)}
+                className="text-white/60 font-black text-xs uppercase tracking-widest flex items-center gap-2 hover:text-white transition-colors group"
+              >
                 <Play className="fill-white/20 group-hover:fill-white" size={16} /> Watch Demo
               </button>
             </div>
@@ -518,6 +523,42 @@ export default function EchoVideo() {
           onClick={(e) => { (e.target as HTMLInputElement).value = ''; }}
         />
       </main>
+
+      {/* ── Demo Video Modal ── */}
+      <AnimatePresence>
+        {showDemo && (
+          <motion.div
+            key="demo-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-6"
+            onClick={() => setShowDemo(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
+              className="relative w-full max-w-4xl rounded-3xl overflow-hidden border border-white/10 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={() => setShowDemo(false)}
+                className="absolute top-4 right-4 z-10 p-2 rounded-full bg-black/50 hover:bg-black/70 text-white transition-colors"
+              >
+                <X size={20} />
+              </button>
+              <video
+                src="/demo.mp4"
+                controls
+                autoPlay
+                className="w-full h-auto max-h-[80vh] bg-black"
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <Footer />
 
